@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pirate Run</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <script>
+
+        /**************************************************************/
+        /* Variables for game.                                        */
+        /**************************************************************/
+        var score = 0;                      // Score of how many successful jumps.
+        var shouldRun = false;              // is the game running?
+        var jumping = false;                // is Pete currently jumping.
+        var jumpUp = false;                 // is Pete jumping?
+        var ctx;                            // canvas variable
+        var a;                              // animation variable
+        var pete = new Image();             // create Pirate Pete Image
+        pete.src = "PHS_pixel_pete.png";    // load Pete image file.
+        peteStartLeft = 10;                 // Pete starts on left side.
+        peteStartTop = 155;                 // Pete starts on ground.
+        var boxArray = [];                  // List of Obstacle Images
+
+        // Create a variable-function to easilly add boxes to the array list.
+        var createImage = function(src,title,xcoord,ycoord){
+            var img = new Image();
+            img.src = src;
+            img.title = title;
+            img.left = xcoord;
+            img.top = ycoord;
+            return img;
+        }
+
+        // Load Screen for game.  This will show up when website is opened.
+        function setup(){
+            ctx = document.getElementById("myCanvas").getContext("2d");
+            ctx.fillStyle = "#91754d";
+            ctx.fillRect(0,187,600,15);
+
+            pete.left = peteStartLeft;
+            pete.top = peteStartTop;
+            ctx.drawImage(pete, pete.left, pete.top, 32, 32);
+
+            // Put a title on game canvas. Will disappear on start.
+            ctx.font = "20px Comic Sans MS";
+            ctx.fillStyle = "red";
+            ctx.fillText("Push Start to Begin!", 100, 100);
+
+            ctx.font = "20px Courier";
+            ctx.fillStyle = "grey";
+            ctx.fillText("Spacebar to Jump!", 100, 150);
+            // load up some boxes to the right of the canvas screen.
+            boxArray.push(createImage("crate1.png", "crate1", 650, 155));
+            boxArray.push(createImage("crate2.png", "crate2", 950, 155));
+        }
+
+        // JQuery Code to use keyboard buttons.
+        // JQuery Library needs to exist.  It is currently on line 7 in this code.
+        $(document).keydown(function(event){
+            var keycode = (event.keyCode ? event.keyCode : event.which);
+            if(shouldRun){
+                // Spacebar will trigger jumping action.  Does not allow double jump.
+                if(keycode == 72){
+                    alert("hello");
+                }
+                if(keycode == 32 && jumping == false){
+                    jumping = true;
+                    jumpUp = true;
+                    score++;
+                }
+
+            }
+        });
+
+        // Start the game!
+        // We need to draw the board and disable the start button.
+        function start(){
+            // this if statement disables the start button after it's begun.
+            if(!shouldRun){
+                score = 0;
+                jumping = false;
+                jumpUp = false;
+                pete.top = 155;
+                shouldRun = true;
+
+                // when we start the game, make sure all the boxes are placed off screen.
+                boxArray[0].left = 650;
+                boxArray[1].left = 950;
+
+
+                draw();
+            }
+        }
+
+
+        // Draw the game.  This will be used over and over to update screen.
+        // you need to redraw the background, the ground, the score, the boxes,
+        // and Pete.  The boxes and Pete images should get modified so that when
+        // draw is used again, the image is moved on the screen.
+        // the a = requestAnimationFrame(draw) is the recursive loop which calls
+        // the draw function to run again...and again...and again...forever!
+        function draw(){
+            ctx = document.getElementById("myCanvas").getContext("2d");
+            ctx.fillStyle = "#f0f0f0";
+            ctx.fillRect(0,0,600,200);
+            ctx.fillStyle = "#91754d";
+            ctx.fillRect(0,187,600,15);
+
+            ctx.font = "16px Comic Sans MS";
+            ctx.fillStyle = "red";
+            ctx.fillText("Score: " + score, 500, 25);
+
+            moveBoxes();
+            movePete();
+            checkCollision();
+            // this is the animation loop
+
+            if(shouldRun){
+                a = requestAnimationFrame(draw);
+            }
+        }
+
+        // move the boxes across the screen!
+        // the boxes should start off the screen to the right and then scroll across.
+        // after they've gone off the screen to the left, they should start back off
+        // the screen to the right but at a random distance.
+        function moveBoxes(){
+            var ctx = document.getElementById("myCanvas").getContext("2d");
+            for(i = 0; i < boxArray.length; i++){
+                var randomStart = Math.floor(Math.random()*700);
+                boxArray[i].left -= 5;
+                ctx.drawImage(boxArray[i], boxArray[i].left, boxArray[i].top, 32, 32);
+                if(boxArray[i].left < -50){
+                    boxArray[i].left = 600 + randomStart;
+                }
+            }
+
+        }
+        // Should Pete be jumping? How?
+        // if jumping up, should be subtracting from y.
+        // if jumping down, should be adding to y.
+        // should set a maximum height and a minimum height for movement.
+        function movePete(){
+            if(jumping){
+                // jumping upwards or downwards?
+                if(jumpUp){
+                    if(pete.top <= 25){
+                        pete.top = 25;
+                        jumpUp = false;
+                    }else {
+                        pete.top = pete.top - 5;
+                    }
+                }
+                else{
+                    if(pete.top >= 155){
+                        pete.top = 155;
+                        jumping = false;
+                    }else{
+                        pete.top = pete.top + 5;
+                    }
+                }
+            }
+            ctx.drawImage(pete, pete.left, pete.top, 32, 32);
+        }
+
+        // Now let's end the game by crashing Pete into a box!
+        // This is called a collision.  It's very common in games.
+        // Let's pause/end the animation.
+        function endgame(){
+            // we have shouldRun in strategic locations so that this stops certain
+            // things from working and others can start working.
+            if(shouldRun){
+                shouldRun = false;
+                cancelAnimationFrame(a);
+            }
+        }
+
+        // Now let's check for a collision.
+        // We need to check every side of the box to see if it overlaps with Pete.
+        // Pete's left edge needs to be > box right edge
+        // Pete's right edge needs to be < box left edge
+        // Pete's Pete's bottom edge needs to be > box top edge.
+        // if we were able to get underneath the box, we'd need to check that too!
+        // Pete is 32x32 pixels.  The boxes are 32x32 pixels.
+        function checkCollision(){
+            // check every box in the array to see if Pete touches it.
+            for(i = 0; i < boxArray.length; i++){
+                if(pete.left + 32 > boxArray[i].left
+                && pete.left < boxArray[i].left + 32
+                && pete.top + 50 > boxArray[i].top){
+                    endgame();
+                }
+            }
+        }
+
+    </script>
+</head>
+
+
+
+<body onload="setup()">
+    <h1>Pirate Run</h1>
+    <br>
+    <canvas id="myCanvas"
+            width="600"
+            height="200"
+            style="background-color:#f0f0f0; border:2px solid #000000">
+    </canvas>
+    <br>
+    <button type="button" onclick="start()">Start</button>
+    <!-- I used this to test the end/pause code before collision was coded.
+    <button type="button" onclick="endgame()">End Game</button>
+    -->
+</body>
+</html>

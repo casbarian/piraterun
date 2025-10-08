@@ -91,8 +91,11 @@
                 draw();
             }
         }
-
-
+        function jump(){
+            if(!jumping){
+                jumping = true;
+            }
+        }    
         // Draw the game.  This will be used over and over to update screen.
         // you need to redraw the background, the ground, the score, the boxes,
         // and Pete.  The boxes and Pete images should get modified so that when
@@ -213,3 +216,4 @@
     -->
 </body>
 </html>
+
